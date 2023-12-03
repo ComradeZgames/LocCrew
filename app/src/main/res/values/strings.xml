@@ -1,0 +1,14 @@
+<resources>
+    <string name="app_name">LocCrew</string>
+
+    <!--Меню-->
+    <string name="menu_1">Расчет времени\n труда и отдыха</string>
+
+    <!--Расчет времени труда и отдыха-->
+    <string name="TC_start_button">Явка</string>
+    <string name="TC_finish_button">Окончание\n работы</string>
+    <string name="TC_add_button">Добавить работу</string>
+    <string name="TC_job_1">Работа 1</string>
+    <string name="TC_job_2">Работа 2</string>
+    <string name="TC_job_3">Работа 3</string>
+</resources>
