@@ -17,12 +17,12 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_ID = "ID";
 
     public DBHelper(@Nullable Context context) {
-        super(context, "BUFFER.sql", null, 1);
+        super(context, "BUFFER.db", null, 1);
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ( " + COLUMN_ID + " INTEGER" + COLUMN_START + " DATETIME, " + COLUMN_FINISH + " DATETIME);");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ( " + COLUMN_ID + " INTEGER, " + COLUMN_START + " DATETIME, " + COLUMN_FINISH + " DATETIME);");
     }
 
     @Override
