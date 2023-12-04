@@ -1,35 +1,27 @@
 package ru.comradez.loccrew;
 
-import static android.widget.Toast.LENGTH_LONG;
-
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
 import android.os.Bundle;
-import android.view.View;
 import android.widget.Button;
-import android.widget.DatePicker;
 import android.widget.TextView;
-import android.widget.TimePicker;
-import android.widget.Toast;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
 
-import java.text.SimpleDateFormat;
-import java.util.Arrays;
-import java.util.Calendar;
-import java.util.Date;
+import kotlin.Pair;
+
 
 public class TimeCalculationActivity extends AppCompatActivity {
 
-    private Button[] jobStartButtons;
-    private Button[] jobFinishButtons;
-    private Button[] addJobButtons;
-    private TextView[] jobLabels;
-    private DBHelper dbHelper = new DBHelper(TimeCalculationActivity.this);;
-    private Calendar dateAndTime = Calendar.getInstance();
-    private static final SimpleDateFormat SDF = new SimpleDateFormat("dd.MM.yy\nHH:mm");
-
+    private final DBHelper dbHelper = new DBHelper(TimeCalculationActivity.this, DataBaseNameList.BUFFER, "TIME_CALC");
+    private LocalDateTime selectedDateTime;
     private Button activeButton;
+    private final DBRecordBuilder[] builders = new DBRecordBuilder[] {new DBRecordBuilder(1),
+                                                                new DBRecordBuilder(2),
+                                                                new DBRecordBuilder(3)};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -40,68 +32,87 @@ public class TimeCalculationActivity extends AppCompatActivity {
     }
 
     private void initializeViews() {
-        jobStartButtons = new Button[]{
+        Button[] jobStartButtons = new Button[]{
                 findViewById(R.id.job_1_start_button),
                 findViewById(R.id.job_2_start_button),
                 findViewById(R.id.job_3_start_button)
         };
 
-        jobFinishButtons = new Button[]{
+        setButtonClickListeners(jobStartButtons);
+
+        Button[] jobFinishButtons = new Button[]{
                 findViewById(R.id.job_1_finish_button),
                 findViewById(R.id.job_2_finish_button),
                 findViewById(R.id.job_3_finish_button)
         };
 
-        addJobButtons = new Button[]{
+        setButtonClickListeners(jobFinishButtons);
+
+        Button[] addJobButtons = new Button[]{
                 findViewById(R.id.add_job_button_2),
                 findViewById(R.id.add_job_button_3)
         };
 
-        jobLabels = new TextView[]{
+        TextView[] jobLabels = new TextView[]{
                 findViewById(R.id.job_1_text),
                 findViewById(R.id.job_2_text),
                 findViewById(R.id.job_3_text)
         };
     }
 
-    public void setDate(View v) {
-        new DatePickerDialog(TimeCalculationActivity.this, d,
-                dateAndTime.get(Calendar.YEAR),
-                dateAndTime.get(Calendar.MONTH),
-                dateAndTime.get(Calendar.DAY_OF_MONTH))
-                .show();
-        activeButton = (Button) v;
+    private void setButtonClickListeners(Button[] buttons) {
+        for (Button button : buttons) {
+            button.setOnClickListener(v -> showDateTimePickerDialog(button));
+        }
     }
 
-    public void setTime(View v) {
-        new TimePickerDialog(TimeCalculationActivity.this, t,
-                dateAndTime.get(Calendar.HOUR_OF_DAY),
-                dateAndTime.get(Calendar.MINUTE), true)
-                .show();
+    private void showDateTimePickerDialog(Button button) {
+        final LocalDate currentDate = LocalDate.now();
+        activeButton = button;
+
+        DatePickerDialog datePickerDialog = new DatePickerDialog(
+                this,
+                (view, year, monthOfYear, dayOfMonth) -> {
+                    selectedDateTime = LocalDateTime.of(year, monthOfYear + 1, dayOfMonth, 0, 0);
+                    showTimePickerDialog();
+                },
+                currentDate.getYear(),
+                currentDate.getMonthValue() - 1,
+                currentDate.getDayOfMonth());
+
+        datePickerDialog.show();
     }
 
-    // установка обработчика выбора времени
-    TimePickerDialog.OnTimeSetListener t = (view, hourOfDay, minute) -> {
-        dateAndTime.set(Calendar.HOUR_OF_DAY, hourOfDay);
-        dateAndTime.set(Calendar.MINUTE, minute);
-
-        dbHelper.AddRecord(getDateTimeOnButton(activeButton));
-    };
-
-    private DateTimeString getDateTimeOnButton(Button activeButton) {
-      String sourceName = activeButton.getResources().getResourceName(activeButton.getId());
-      String[] tempArray = sourceName.split("_");
-      if (tempArray[2].equals("start"))
-      return new DateTimeString(Integer.parseInt(tempArray[1]), dateAndTime.getTimeInMillis(), true);
-      else return new DateTimeString(Integer.parseInt(tempArray[1]), dateAndTime.getTimeInMillis(), false);
+    private void showTimePickerDialog() {
+        final LocalTime currentTime = LocalTime.now();
+        TimePickerDialog timePickerDialog = new TimePickerDialog(
+                this,
+                (view, hourOfDay, minute) -> {
+                    selectedDateTime = selectedDateTime.withHour(hourOfDay).withMinute(minute);
+                    saveResultOnBuffer();
+                },
+                currentTime.getHour(),
+                currentTime.getMinute(),
+                true);
+        timePickerDialog.show();
     }
 
-    // установка обработчика выбора даты
-    DatePickerDialog.OnDateSetListener d = (view, year, monthOfYear, dayOfMonth) -> {
-        dateAndTime.set(Calendar.YEAR, year);
-        dateAndTime.set(Calendar.MONTH, monthOfYear);
-        dateAndTime.set(Calendar.DAY_OF_MONTH, dayOfMonth);
+    private void saveResultOnBuffer() {
+        if (selectedDateTime != null) {
+            String formattedDateTime = selectedDateTime.format(DateTimeString.formatter);
+            activeButton.setText(formattedDateTime);
 
-        setTime(view);
-    };
+            Pair<Integer, String> metaDataPair = getMetaDataFromActiveButton();
+            for (DBRecordBuilder b : builders){
+                if (b.respondForId(metaDataPair.getFirst()))
+                    b.add(dbHelper,metaDataPair.getFirst(), formattedDateTime,metaDataPair.getSecond().equals("start"));
+            }
+        }
+    }
+    private Pair<Integer, String> getMetaDataFromActiveButton() {
+        String sourceName = activeButton.getResources().getResourceName(activeButton.getId());
+        String[] tempArray = sourceName.split("_");
+        return new Pair<>(Integer.parseInt(tempArray[1]), tempArray[2]); //id кнопки всегда имеет формат job_ID_start/finish_button,
+                                                                            // следовательно в итоговом архиве после разбиения строки нам нужны 1 и 2 индексы как искомые ID и назначение.
+    }
 }

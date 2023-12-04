@@ -11,18 +11,19 @@ import androidx.annotation.Nullable;
 import java.util.LinkedList;
 
 public class DBHelper extends SQLiteOpenHelper {
-    private static final String TABLE_NAME = "TIME_CALC";
+    private static String tableName;
     private static final String COLUMN_START = "START";
     private static final String COLUMN_FINISH = "FINISH";
     private static final String COLUMN_ID = "ID";
 
-    public DBHelper(@Nullable Context context) {
-        super(context, "BUFFER.db", null, 1);
+    public DBHelper(@Nullable Context context,DataBaseNameList baseName, String tableName) {
+        super(context, baseName.toString(), null, 1);
+        this.tableName = tableName;
     }
 
     @Override
     public void onCreate(SQLiteDatabase db) {
-        db.execSQL("CREATE TABLE IF NOT EXISTS " + TABLE_NAME + " ( " + COLUMN_ID + " INTEGER, " + COLUMN_START + " DATETIME, " + COLUMN_FINISH + " DATETIME);");
+        db.execSQL("CREATE TABLE IF NOT EXISTS " + tableName + " ( " + COLUMN_ID + " INTEGER, " + COLUMN_START + " DATETIME, " + COLUMN_FINISH + " DATETIME);");
     }
 
     @Override
@@ -31,7 +32,7 @@ public class DBHelper extends SQLiteOpenHelper {
 
     public void clearAll() {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_NAME, null, null);
+        db.delete(tableName, null, null);
         db.close();
     }
 
@@ -42,7 +43,7 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put(COLUMN_ID, dateTimeString.getId());
         contentValues.put(COLUMN_START, dateTimeString.getStart());
         contentValues.put(COLUMN_FINISH, dateTimeString.getFinish());
-        db.insert(TABLE_NAME, null, contentValues);
+        db.insert(tableName, null, contentValues);
 
         db.close();
     }
@@ -51,13 +52,13 @@ public class DBHelper extends SQLiteOpenHelper {
         LinkedList<DateTimeString> resultList = new LinkedList<DateTimeString>();
         SQLiteDatabase db = this.getReadableDatabase();
 
-        Cursor cursor = db.query(TABLE_NAME, null, null, null, null, null, null);
+        Cursor cursor = db.query(tableName, null, null, null, null, null, null);
         if (cursor.moveToFirst()) {
             do {
                 int id_start = cursor.getColumnIndex(COLUMN_START);
                 int id_finish = cursor.getColumnIndex(COLUMN_FINISH);
                 int id_id = cursor.getColumnIndex(COLUMN_ID);
-                DateTimeString dateTimeString = new DateTimeString(cursor.getInt(id_id), cursor.getLong(id_start), cursor.getLong(id_finish));
+                DateTimeString dateTimeString = new DateTimeString(cursor.getInt(id_id), cursor.getString(id_start), cursor.getString(id_finish));
                 resultList.add(dateTimeString);
             } while (cursor.moveToNext());
         }
