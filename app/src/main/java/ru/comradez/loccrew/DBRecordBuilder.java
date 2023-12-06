@@ -1,6 +1,8 @@
 package ru.comradez.loccrew;
 
 
+import java.util.LinkedList;
+
 public class DBRecordBuilder {
 
     private final int id;
@@ -10,26 +12,47 @@ public class DBRecordBuilder {
         this.id = id;
 
     }
-        public void add (DBHelper db , int checkedId, String time, boolean isStart){
-        if(checkedId == id) {
+
+    public String getStart() {
+        return start;
+    }
+
+    public String getFinish() {
+        return finish;
+    }
+
+    public void recordBuilderLoad(DBHelper db) {
+        LinkedList<DateTimeString> dbRecords = db.getAll();
+        for (DateTimeString record : dbRecords) {
+            if (!respondForId(record.getId())) return;
+            this.start = record.getStart();
+            this.finish = record.getFinish();
+        }
+    }
+
+    public void add(DBHelper db, int checkedId, String time, boolean isStart) {
+        if (checkedId == id) {
             if (isStart)
                 start = time;
             else finish = time;
         }
-            if (isComplete()) {
-                db.AddRecord(returnResult());
-            }
+        if (isComplete()) {
+            if (db.isContains(checkedId))
+                db.updateRecord(returnResult());
+            else db.AddRecord(returnResult());
         }
+    }
 
-        public boolean respondForId (int id){
-            return this.id == id;
-        }
+    public boolean respondForId(int id) {
+        return this.id == id;
+    }
 
-    private boolean isComplete () {
+    private boolean isComplete() {
         return (start != null) && (finish != null);
     }
-            private DateTimeString returnResult () {
-                return new DateTimeString(id, start, finish);
-            }
+
+    private DateTimeString returnResult() {
+        return new DateTimeString(id, start, finish);
+    }
 }
 

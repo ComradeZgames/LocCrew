@@ -16,9 +16,9 @@ public class DBHelper extends SQLiteOpenHelper {
     private static final String COLUMN_FINISH = "FINISH";
     private static final String COLUMN_ID = "ID";
 
-    public DBHelper(@Nullable Context context,DataBaseNameList baseName, String tableName) {
+    public DBHelper(@Nullable Context context, DataBaseNameList baseName, String tableName) {
         super(context, baseName.toString(), null, 1);
-        this.tableName = tableName;
+        DBHelper.tableName = tableName;
     }
 
     @Override
@@ -45,11 +45,30 @@ public class DBHelper extends SQLiteOpenHelper {
         contentValues.put(COLUMN_FINISH, dateTimeString.getFinish());
         db.insert(tableName, null, contentValues);
 
-        db.close();
+        //db.close();
     }
 
-    public LinkedList<DateTimeString> GetAll() {
-        LinkedList<DateTimeString> resultList = new LinkedList<DateTimeString>();
+    public void updateRecord(DateTimeString newRecord) {
+        SQLiteDatabase db = this.getWritableDatabase();
+
+        ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_START, newRecord.getStart());
+        contentValues.put(COLUMN_FINISH, newRecord.getFinish());
+
+        db.update(tableName, contentValues, COLUMN_ID + "=" + newRecord.getId(), null);
+    }
+
+    public boolean isContains(int id) {
+
+        LinkedList<DateTimeString> checkedList = this.getAll();
+        for (DateTimeString string : checkedList) {
+            if (string.getId() == id) return true;
+        }
+        return false;
+    }
+
+    public LinkedList<DateTimeString> getAll() {
+        LinkedList<DateTimeString> resultList = new LinkedList<>();
         SQLiteDatabase db = this.getReadableDatabase();
 
         Cursor cursor = db.query(tableName, null, null, null, null, null, null);
@@ -62,6 +81,7 @@ public class DBHelper extends SQLiteOpenHelper {
                 resultList.add(dateTimeString);
             } while (cursor.moveToNext());
         }
+        cursor.close();
         db.close();
         return resultList;
     }

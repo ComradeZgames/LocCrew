@@ -11,4 +11,9 @@
     <string name="TC_job_1">Работа 1</string>
     <string name="TC_job_2">Работа 2</string>
     <string name="TC_job_3">Работа 3</string>
+
+    <string name="TC_dialog_title">С возвращением!</string>
+    <string name="TC_dialog_message">Загрузить последние данные?</string>
+    <string name="TC_dialog_posButton">Да</string>
+    <string name="TC_dilog_negButton">Нет</string>
 </resources>
