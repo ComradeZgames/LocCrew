@@ -15,5 +15,5 @@
     <string name="TC_dialog_title">С возвращением!</string>
     <string name="TC_dialog_message">Загрузить последние данные?</string>
     <string name="TC_dialog_posButton">Да</string>
-    <string name="TC_dilog_negButton">Нет</string>
+    <string name="TC_dialog_negButton">Нет</string>
 </resources>

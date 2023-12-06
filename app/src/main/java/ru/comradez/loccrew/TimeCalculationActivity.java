@@ -1,12 +1,14 @@
 package ru.comradez.loccrew;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 
-import android.annotation.SuppressLint;
 import android.app.DatePickerDialog;
 import android.app.TimePickerDialog;
+import android.content.res.Configuration;
 import android.os.Bundle;
+import android.view.View;
 import android.widget.Button;
 import android.widget.TextView;
 
@@ -23,13 +25,53 @@ public class TimeCalculationActivity extends AppCompatActivity {
     private LocalDateTime selectedDateTime;
 
     private Button activeButton;
-    private Button[] jobStartButtons;
-    private Button[] jobFinishButtons;
+    private Button[] jobStartButtons, jobFinishButtons, addJobButtons;
+    private TextView[] jobLabels, restTexts;
+
     private final DBRecordBuilder[] builders = new DBRecordBuilder[]{new DBRecordBuilder(1),
             new DBRecordBuilder(2),
             new DBRecordBuilder(3)};
 
-    @SuppressLint("SuspiciousIndentation")
+    @Override
+    public void onConfigurationChanged(@NonNull Configuration newConfig) {
+        super.onConfigurationChanged(newConfig);
+
+        activityStateLoading();
+    }
+
+    private void activityStateLoading() {
+        LoadBuildersRecords();
+
+        if (dbHelper.getAll().isEmpty()) {
+            return;
+        }
+        updateButtonLabels();
+    }
+
+    private void LoadBuildersRecords() {
+        for (int i = 0; i < builders.length; i++) {
+            if (builders[i].load(dbHelper)) {
+                if (i != 0)
+                    updateJobFieldsVisibility(addJobButtons[i - 1], (i - 1));
+            }
+        }
+    }
+
+    private void updateButtonLabels() {
+        for (int i = 0; i < builders.length; i++) {
+            updateButtonText(jobStartButtons[i], builders[i].getStart(), R.string.TC_start_button);
+            updateButtonText(jobFinishButtons[i], builders[i].getFinish(), R.string.TC_finish_button);
+        }
+    }
+
+    private void updateButtonText(Button button, String text, int defaultResourceId) {
+        if (text != null) {
+            button.setText(text);
+        } else {
+            button.setText(defaultResourceId);
+        }
+    }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -41,20 +83,14 @@ public class TimeCalculationActivity extends AppCompatActivity {
     }
 
     private void showStartingDialog() {
-        AlertDialog.Builder dilogBuilder = new AlertDialog.Builder(TimeCalculationActivity.this);
-        dilogBuilder.setTitle(R.string.TC_dialog_title);
-        dilogBuilder.setMessage(R.string.TC_dialog_message);
-        dilogBuilder.setPositiveButton(R.string.TC_dialog_posButton, (dialog, which) -> {
-            for (DBRecordBuilder builder : builders) {
-                builder.recordBuilderLoad(dbHelper);
-            }
-            for (int i = 0; i < builders.length; i++) {
-                jobStartButtons[i].setText(builders[i].getStart());
-                jobFinishButtons[i].setText(builders[i].getFinish());
-            }
+        AlertDialog.Builder dialogBuilder = new AlertDialog.Builder(TimeCalculationActivity.this);
+        dialogBuilder.setTitle(R.string.TC_dialog_title);
+        dialogBuilder.setMessage(R.string.TC_dialog_message);
+        dialogBuilder.setPositiveButton(R.string.TC_dialog_posButton, (dialog, which) -> {
+            activityStateLoading();
         });
-        dilogBuilder.setNegativeButton(R.string.TC_dilog_negButton, (dialog, which) -> dbHelper.clearAll());
-        AlertDialog startingDialog = dilogBuilder.create();
+        dialogBuilder.setNegativeButton(R.string.TC_dialog_negButton, (dialog, which) -> dbHelper.clearAll());
+        AlertDialog startingDialog = dialogBuilder.create();
         startingDialog.setCancelable(false);
         startingDialog.setCanceledOnTouchOutside(false);
         startingDialog.show();
@@ -67,7 +103,7 @@ public class TimeCalculationActivity extends AppCompatActivity {
                 findViewById(R.id.job_3_start_button)
         };
 
-        setButtonClickListeners(jobStartButtons);
+        setTimeButtonClickListeners(jobStartButtons);
 
         jobFinishButtons = new Button[]{
                 findViewById(R.id.job_1_finish_button),
@@ -75,25 +111,63 @@ public class TimeCalculationActivity extends AppCompatActivity {
                 findViewById(R.id.job_3_finish_button)
         };
 
-        setButtonClickListeners(jobFinishButtons);
+        setTimeButtonClickListeners(jobFinishButtons);
 
-        Button[] addJobButtons = new Button[]{
+        addJobButtons = new Button[]{
                 findViewById(R.id.add_job_button_2),
                 findViewById(R.id.add_job_button_3)
         };
 
-        TextView[] jobLabels = new TextView[]{
+        setAddButtonClickListeners(addJobButtons);
+
+        jobLabels = new TextView[]{
                 findViewById(R.id.job_1_text),
                 findViewById(R.id.job_2_text),
                 findViewById(R.id.job_3_text)
         };
-    }
 
-    private void setButtonClickListeners(Button[] buttons) {
+        restTexts = new TextView[]{
+                findViewById(R.id.rest_text_1),
+                findViewById(R.id.rest_text_2)
+        };
+    }
+   /* private void testIt(){
+        TimeCalculator timeCalculator = new TimeCalculator(dbHelper);
+        Pair<String, String> pr = timeCalculator.calculateRestFromSingleRecord(new DateTimeString(1, builders[0].getStart(), builders[0].getFinish()));
+        restTexts[0].setText("Работа 1:\nПолный отдых:\n" + pr.getFirst() + " \n\nКороткий отдых:\n" + pr.getSecond());
+    }*/
+
+    private void setTimeButtonClickListeners(Button[] buttons) {
         for (Button button : buttons) {
             button.setOnClickListener(v -> showDateTimePickerDialog(button));
         }
     }
+
+    private void setAddButtonClickListeners(Button[] buttons) {
+        for (int i = 0; i < buttons.length; i++) {
+            int finalI = i;
+            buttons[i].setOnClickListener(v -> {
+                updateJobFieldsVisibility(buttons[finalI], finalI);
+            });
+        }
+    }
+
+    private void updateJobFieldsVisibility(Button currentButton, int rawButtonIndex) {
+        int buttonIndex = rawButtonIndex + 1;
+
+        setButtonVisibilityAndEnable(jobStartButtons[buttonIndex], true);
+        setButtonVisibilityAndEnable(jobFinishButtons[buttonIndex], true);
+        setButtonVisibilityAndEnable(currentButton, false);
+        jobLabels[buttonIndex].setVisibility(View.VISIBLE);
+        if (!currentButton.equals(addJobButtons[addJobButtons.length - 1]))
+            setButtonVisibilityAndEnable(addJobButtons[buttonIndex], true);
+    }
+
+    private void setButtonVisibilityAndEnable(Button button, boolean isVisibleAndEnabled) {
+        button.setVisibility(isVisibleAndEnabled ? View.VISIBLE : View.INVISIBLE);
+        button.setEnabled(isVisibleAndEnabled);
+    }
+
 
     private void showDateTimePickerDialog(Button button) {
         final LocalDate currentDate = LocalDate.now();
@@ -129,18 +203,14 @@ public class TimeCalculationActivity extends AppCompatActivity {
     private void saveResultOnBuffer() {
         if (selectedDateTime != null) {
             String formattedDateTime = selectedDateTime.format(DateTimeString.formatter);
-            showButtonText(formattedDateTime);
 
             Pair<Integer, String> metaDataPair = getMetaDataFromActiveButton();
+            updateButtonText(activeButton, formattedDateTime, metaDataPair.getSecond().equals("start") ? R.string.TC_start_button : R.string.TC_finish_button);
             for (DBRecordBuilder b : builders) {
                 if (b.respondForId(metaDataPair.getFirst()))
                     b.add(dbHelper, metaDataPair.getFirst(), formattedDateTime, metaDataPair.getSecond().equals("start"));
             }
         }
-    }
-
-    private void showButtonText(String formattedDateTime) {
-        activeButton.setText(formattedDateTime);
     }
 
     private Pair<Integer, String> getMetaDataFromActiveButton() {

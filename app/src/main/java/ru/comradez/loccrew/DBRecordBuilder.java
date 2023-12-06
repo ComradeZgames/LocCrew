@@ -21,13 +21,16 @@ public class DBRecordBuilder {
         return finish;
     }
 
-    public void recordBuilderLoad(DBHelper db) {
+    public boolean load(DBHelper db) {
         LinkedList<DateTimeString> dbRecords = db.getAll();
         for (DateTimeString record : dbRecords) {
-            if (!respondForId(record.getId())) return;
-            this.start = record.getStart();
-            this.finish = record.getFinish();
+            if (respondForId(record.getId())) {
+                this.start = record.getStart();
+                this.finish = record.getFinish();
+                return true;
+            }
         }
+        return false;
     }
 
     public void add(DBHelper db, int checkedId, String time, boolean isStart) {
