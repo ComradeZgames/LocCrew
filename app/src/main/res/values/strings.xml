@@ -5,8 +5,9 @@
     <string name="menu_1">Расчет времени\n труда и отдыха</string>
 
     <!--Расчет времени труда и отдыха-->
+    <string name="TC_title">Расчет времени труда и отдыха</string>
     <string name="TC_start_button">Явка</string>
-    <string name="TC_finish_button">Окончание\n работы</string>
+    <string name="TC_finish_button">Окончание\nработы</string>
     <string name="TC_add_button">Добавить работу</string>
     <string name="TC_job_1">Работа 1</string>
     <string name="TC_job_2">Работа 2</string>
@@ -16,4 +17,10 @@
     <string name="TC_dialog_message">Загрузить последние данные?</string>
     <string name="TC_dialog_posButton">Да</string>
     <string name="TC_dialog_negButton">Нет</string>
+
+    <string name="TC_dialog_title_invalid">Ошибка</string>
+    <string name="TC_dialog_message_invalid_start">Время начала работы не может быть больше времени ее окончания\n\n
+        (Попробуйте сначала исправить время окончания работы или проверьте введенные данные)</string>
+    <string name="TC_dialog_message_invalid_finish">Время окончания работы не может быть меньше времени ее начала\n\n
+        (Скорректируйте время начала работы или проверьте введенные данные)</string>
 </resources>

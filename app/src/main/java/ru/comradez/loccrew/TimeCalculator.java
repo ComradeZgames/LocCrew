@@ -28,6 +28,13 @@ public class TimeCalculator {
         }
         return result;
     }
+    public String getWorkDuration(String start, String finish) {
+        String result;
+        Duration workDuration = Duration.between(LocalDateTime.parse(start, DateTimeString.formatter), LocalDateTime.parse(finish,
+                DateTimeString.formatter));
+        result = workDuration.toHours() + " ч " + workDuration.toMinutes() % 60 + " мин";
+        return result;
+    }
 
     public String getHomeRestTime() {
         // Сначала вычисляем общее время работы

@@ -29,9 +29,9 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
     private TextView[] jobLabels, restTexts;
     private TextView homeRestText;
 
-    private final DBRecordBuilder[] builders = new DBRecordBuilder[]{new DBRecordBuilder(1),
-            new DBRecordBuilder(2),
-            new DBRecordBuilder(3)};
+    private final DBRecordBuilder[] builders = new DBRecordBuilder[]{new DBRecordBuilder(TimeCalculationActivity.this,1),
+            new DBRecordBuilder(TimeCalculationActivity.this, 2),
+            new DBRecordBuilder(TimeCalculationActivity.this, 3)};
     private TimeCalculator timeCalculator = new TimeCalculator(dbHelper);
 
     @Override
@@ -53,8 +53,10 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
     private void LoadBuildersRecords() {
         for (int i = 0; i < builders.length; i++) {
             if (builders[i].load(dbHelper)) {
+                if(i != builders.length - 1)
+                addJobButtons[i].setEnabled(true);
                 if (i != 0)
-                    updateJobFieldsVisibility(addJobButtons[i - 1], (i - 1));
+                    updateJobFieldsVisibility(addJobButtons[i -1], (i - 1));
             }
         }
     }
@@ -69,6 +71,7 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
     private void updateButtonText(Button button, String text, int defaultResourceId) {
         if (text != null) {
             button.setText(text);
+            button.setEnabled(true);
         } else {
             button.setText(defaultResourceId);
         }
@@ -159,11 +162,11 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
         int buttonIndex = rawButtonIndex + 1;
 
         setButtonVisibilityAndEnable(jobStartButtons[buttonIndex], true);
-        setButtonVisibilityAndEnable(jobFinishButtons[buttonIndex], true);
+        jobFinishButtons[buttonIndex].setVisibility(View.VISIBLE);
         setButtonVisibilityAndEnable(currentButton, false);
         jobLabels[buttonIndex].setVisibility(View.VISIBLE);
         if (!currentButton.equals(addJobButtons[addJobButtons.length - 1]))
-            setButtonVisibilityAndEnable(addJobButtons[buttonIndex], true);
+            addJobButtons[buttonIndex].setVisibility(View.VISIBLE);
     }
 
     private void setButtonVisibilityAndEnable(Button button, boolean isVisibleAndEnabled) {
@@ -208,10 +211,25 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
             String formattedDateTime = selectedDateTime.format(DateTimeString.formatter);
 
             Pair<Integer, String> metaDataPair = getMetaDataFromActiveButton();
-            updateButtonText(activeButton, formattedDateTime, metaDataPair.getSecond().equals("start") ? R.string.TC_start_button : R.string.TC_finish_button);
+
             for (DBRecordBuilder b : builders) {
                 if (b.respondForId(metaDataPair.getFirst()))
-                    b.add(dbHelper, metaDataPair.getFirst(), formattedDateTime, metaDataPair.getSecond().equals("start"));
+                   if (b.add(dbHelper, metaDataPair.getFirst(), formattedDateTime, metaDataPair.getSecond().equals("start"))) {
+                       updateButtonText(activeButton, formattedDateTime, metaDataPair.getSecond().equals("start") ? R.string.TC_start_button : R.string.TC_finish_button);
+                       makeContentAvailable();
+                   }
+            }
+        }
+    }
+
+    private void makeContentAvailable() {
+        for (int i = 0; i < jobStartButtons.length; i++){
+            if (activeButton.equals(jobStartButtons[i])){
+                jobFinishButtons[i].setEnabled(true);
+            break;
+            } else if (activeButton.equals(jobFinishButtons[i]) && i <2) {
+                addJobButtons[i].setEnabled(true);
+                break;
             }
         }
     }
@@ -224,18 +242,24 @@ public class TimeCalculationActivity extends AppCompatActivity implements Builde
     }
 
     @Override
-    public void onBuilderFilled() {
+    public void onBuilderFilled(int id) {
         updateRestTimeText();
+        updateWorkTimeText(id);
+    }
+
+    private void updateWorkTimeText(int id) {
+        jobLabels[id].setText("Работа " + (id + 1) + ":\n" + timeCalculator.getWorkDuration(builders[id].getStart(), builders[id].getFinish()));
+
     }
 
     private void updateRestTimeText() {
         Pair<String, String>[] restTimes = timeCalculator.getRestTime();
 
         for (int i = 0; i < restTimes.length; i++){
-            restTexts[i].setText("Отдых в ПО " + (i + 1) + "\nПолный отдых:\n" + restTimes[i].getFirst() + "\nКороткий отдых:\n" + restTimes[i].getSecond());
+            restTexts[i].setText("Отдых в ПО " + (i + 1) + ":\n\nПолный отдых:\n" + restTimes[i].getFirst() + "\nКороткий отдых:\n" + restTimes[i].getSecond());
         }
 
-        homeRestText.setText("Время полного\nдомашнего отдыха:\n" + timeCalculator.getHomeRestTime());
+        homeRestText.setText("Полный\nдомашний отдых:\n\n" + timeCalculator.getHomeRestTime());
     }
 
     @Override
