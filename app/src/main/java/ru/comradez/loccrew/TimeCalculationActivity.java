@@ -19,7 +19,7 @@ import java.time.LocalTime;
 import kotlin.Pair;
 
 
-public class TimeCalculationActivity extends AppCompatActivity {
+public class TimeCalculationActivity extends AppCompatActivity implements BuilderObserver {
 
     private final DBHelper dbHelper = new DBHelper(TimeCalculationActivity.this, DataBaseNameList.BUFFER, "TIME_CALC");
     private LocalDateTime selectedDateTime;
@@ -27,10 +27,12 @@ public class TimeCalculationActivity extends AppCompatActivity {
     private Button activeButton;
     private Button[] jobStartButtons, jobFinishButtons, addJobButtons;
     private TextView[] jobLabels, restTexts;
+    private TextView homeRestText;
 
     private final DBRecordBuilder[] builders = new DBRecordBuilder[]{new DBRecordBuilder(1),
             new DBRecordBuilder(2),
             new DBRecordBuilder(3)};
+    private TimeCalculator timeCalculator = new TimeCalculator(dbHelper);
 
     @Override
     public void onConfigurationChanged(@NonNull Configuration newConfig) {
@@ -130,12 +132,13 @@ public class TimeCalculationActivity extends AppCompatActivity {
                 findViewById(R.id.rest_text_1),
                 findViewById(R.id.rest_text_2)
         };
+
+        homeRestText = findViewById(R.id.home_rest_text);
+
+        for (DBRecordBuilder builder : builders) {
+            builder.addObserver(this);
+        }
     }
-   /* private void testIt(){
-        TimeCalculator timeCalculator = new TimeCalculator(dbHelper);
-        Pair<String, String> pr = timeCalculator.calculateRestFromSingleRecord(new DateTimeString(1, builders[0].getStart(), builders[0].getFinish()));
-        restTexts[0].setText("Работа 1:\nПолный отдых:\n" + pr.getFirst() + " \n\nКороткий отдых:\n" + pr.getSecond());
-    }*/
 
     private void setTimeButtonClickListeners(Button[] buttons) {
         for (Button button : buttons) {
@@ -218,5 +221,29 @@ public class TimeCalculationActivity extends AppCompatActivity {
         String[] tempArray = sourceName.split("_");
         return new Pair<>(Integer.parseInt(tempArray[1]), tempArray[2]); //id кнопки всегда имеет формат job_ID_start/finish_button,
         // следовательно в итоговом архиве после разбиения строки нам нужны 1 и 2 индексы как искомые ID и назначение.
+    }
+
+    @Override
+    public void onBuilderFilled() {
+        updateRestTimeText();
+    }
+
+    private void updateRestTimeText() {
+        Pair<String, String>[] restTimes = timeCalculator.getRestTime();
+
+        for (int i = 0; i < restTimes.length; i++){
+            restTexts[i].setText("Отдых в ПО " + (i + 1) + "\nПолный отдых:\n" + restTimes[i].getFirst() + "\nКороткий отдых:\n" + restTimes[i].getSecond());
+        }
+
+        homeRestText.setText("Время полного\nдомашнего отдыха:\n" + timeCalculator.getHomeRestTime());
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+
+        for (DBRecordBuilder builder : builders) {
+            builder.removeObserver(this);
+        }
     }
 }

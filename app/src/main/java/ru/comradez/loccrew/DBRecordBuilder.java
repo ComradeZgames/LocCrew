@@ -1,16 +1,26 @@
 package ru.comradez.loccrew;
 
 
+import java.util.ArrayList;
 import java.util.LinkedList;
+import java.util.List;
+
 
 public class DBRecordBuilder {
 
     private final int id;
     private String start = null, finish = null;
+    private final List<BuilderObserver> observers = new ArrayList<>();
 
     public DBRecordBuilder(int id) {
         this.id = id;
+    }
 
+    public void addObserver(BuilderObserver observer) {
+        observers.add(observer);
+    }
+    public void removeObserver(BuilderObserver observer) {
+        observers.remove(observer);
     }
 
     public String getStart() {
@@ -21,12 +31,20 @@ public class DBRecordBuilder {
         return finish;
     }
 
+    private void notifyObservers() {
+        for (BuilderObserver observer : observers) {
+            observer.onBuilderFilled();
+        }
+    }
+
     public boolean load(DBHelper db) {
         LinkedList<DateTimeString> dbRecords = db.getAll();
         for (DateTimeString record : dbRecords) {
             if (respondForId(record.getId())) {
                 this.start = record.getStart();
                 this.finish = record.getFinish();
+                if (isComplete())
+                    notifyObservers();
                 return true;
             }
         }
@@ -43,6 +61,8 @@ public class DBRecordBuilder {
             if (db.isContains(checkedId))
                 db.updateRecord(returnResult());
             else db.AddRecord(returnResult());
+
+            notifyObservers();
         }
     }
 
